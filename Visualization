@@ -1,0 +1,5 @@
+-Visualize Target Distribution: Generate a bar chart in a new cell to visualize the distribution of the 'target' variable from the heart_data DataFrame. This will show the balance between the two classes (presence vs. absence of heart disease).
+-Visualize SKlearn Cross-Validation Performance: Create a bar chart in a new cell to compare the mean Accuracy, Precision, Recall, and F1-Score of the scikit-learn models after cross-validation. This visualization will summarize the overall performance and stability of each model across different metrics.
+-Visualize Hyperparameter Tuning Results: Generate a bar chart in a new cell to compare the best cross-validation accuracy scores obtained for each model from both GridSearchCV and RandomizedSearchCV. This will illustrate which tuning method yielded better results for each model.
+-Final Task: Review the generated visualizations and provide any further insights or analysis based on them. 
+
