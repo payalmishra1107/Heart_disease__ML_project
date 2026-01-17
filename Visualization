@@ -1,5 +1,190 @@
--Visualize Target Distribution: Generate a bar chart in a new cell to visualize the distribution of the 'target' variable from the heart_data DataFrame. This will show the balance between the two classes (presence vs. absence of heart disease).
+-Visualize Target Distribution: Generate a bar chart in a new cell to visualize the distribution of the 'target' variable from the heart_data DataFrame. This will show the balance between the two classes (presence vs. absence of heart disease). 
+
+import matplotlib.pyplot as plt
+
+target_counts = heart_data['target'].value_counts()
+
+plt.figure(figsize=(6, 4))
+plt.bar(target_counts.index, target_counts.values, tick_label=['No Disease (0)', 'Disease (1)'])
+plt.title('Distribution of Target Variable (Heart Disease)')
+plt.xlabel('Target (0: No Disease, 1: Disease)')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+plt.show()
+
+-----------------------------------------------------------------------------------------------------------------------------
+
 -Visualize SKlearn Cross-Validation Performance: Create a bar chart in a new cell to compare the mean Accuracy, Precision, Recall, and F1-Score of the scikit-learn models after cross-validation. This visualization will summarize the overall performance and stability of each model across different metrics.
--Visualize Hyperparameter Tuning Results: Generate a bar chart in a new cell to compare the best cross-validation accuracy scores obtained for each model from both GridSearchCV and RandomizedSearchCV. This will illustrate which tuning method yielded better results for each model.
+
+import pandas as pd
+import numpy as np
+
+def get_cv_metrics_for_plotting():
+    results = []
+    for model in models_cv:
+        model_name = type(model).__name__
+        
+        # Use StratifiedKFold for classification tasks to maintain class distribution
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+        # Define custom scorers with zero_division handled
+        scoring = {
+            'accuracy': make_scorer(accuracy_score),
+            'precision': make_scorer(precision_score, zero_division=0),
+            'recall': make_scorer(recall_score, zero_division=0),
+            'f1_score': make_scorer(f1_score, zero_division=0)
+        }
+
+        # Perform cross-validation and get scores for multiple metrics
+        cv_accuracy = cross_val_score(model, features, target, cv=cv, scoring=scoring['accuracy'])
+        cv_precision = cross_val_score(model, features, target, cv=cv, scoring=scoring['precision'])
+        cv_recall = cross_val_score(model, features, target, cv=cv, scoring=scoring['recall'])
+        cv_f1 = cross_val_score(model, features, target, cv=cv, scoring=scoring['f1_score'])
+
+        results.append({
+            'Model': model_name,
+            'Mean Accuracy': np.mean(cv_accuracy),
+            'Mean Precision': np.mean(cv_precision),
+            'Mean Recall': np.mean(cv_recall),
+            'Mean F1-Score': np.mean(cv_f1)
+        })
+    return pd.DataFrame(results)
+
+cv_metrics_df = get_cv_metrics_for_plotting()
+print(cv_metrics_df)
+
+                    Model  Mean Accuracy  Mean Precision  Mean Recall  \
+0      LogisticRegression       0.838306        0.818863     0.909091   
+1                     SVC       0.841530        0.815973     0.921212   
+2              GaussianNB       0.808415        0.824710     0.842424   
+3    KNeighborsClassifier       0.798470        0.791761     0.872727   
+4  RandomForestClassifier       0.818415        0.803642     0.872727   
+
+   Mean F1-Score  
+0       0.860558  
+1       0.864784  
+2       0.830029  
+3       0.827828  
+4       0.843827 
+
+import matplotlib.pyplot as plt
+
+# Prepare data for plotting
+metrics = ['Mean Accuracy', 'Mean Precision', 'Mean Recall', 'Mean F1-Score']
+models = cv_metrics_df['Model']
+
+x = np.arange(len(models))  # the label locations
+width = 0.2  # the width of the bars
+
+plt.figure(figsize=(15, 8))
+
+for i, metric in enumerate(metrics):
+    plt.bar(x + i * width, cv_metrics_df[metric], width, label=metric)
+
+plt.xlabel('Models')
+plt.ylabel('Score')
+plt.title('Comparison of Mean Cross-Validation Metrics for SKlearn Models')
+plt.xticks(x + width * (len(metrics) - 1) / 2, models, rotation=45, ha='right')
+plt.legend(loc='lower right')
+plt.ylim(0.7, 1.0) # Set a reasonable y-limit to better visualize differences
+plt.tight_layout()
+plt.show()
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+-Visualize Hyperparameter Tuning Results: Generate a bar chart in a new cell to compare the best cross-validation accuracy scores obtained for each model from both GridSearchCV and RandomizedSearchCV. This will illustrate which tuning method yielded better results for each model. 
+
+import pandas as pd
+
+# Extract GridSearchCV results
+grid_results_df = pd.DataFrame(tuning_results)
+grid_results_df = grid_results_df.rename(columns={'best_score': 'GridSearchCV Accuracy'})
+
+# Extract RandomizedSearchCV results
+random_results_df = pd.DataFrame(random_tuning_results)
+random_results_df = random_results_df.rename(columns={'best_score': 'RandomizedSearchCV Accuracy'})
+
+# Merge the results based on model name
+tuning_comparison_df = pd.merge(grid_results_df[['model', 'GridSearchCV Accuracy']],
+                                random_results_df[['model', 'RandomizedSearchCV Accuracy']],
+                                on='model')
+
+print(tuning_comparison_df)
+
+                    model  GridSearchCV Accuracy  RandomizedSearchCV Accuracy
+0     Logistic Regression               0.830442                     0.830442
+1                     SVC               0.830442                     0.830442
+2              GaussianNB               0.818027                     0.818027
+3    KNeighborsClassifier               0.822364                     0.822364
+4  RandomForestClassifier               0.834864                     0.834864
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+models = tuning_comparison_df['model']
+grid_accuracy = tuning_comparison_df['GridSearchCV Accuracy']
+random_accuracy = tuning_comparison_df['RandomizedSearchCV Accuracy']
+
+x = np.arange(len(models))  # the label locations
+width = 0.35  # the width of the bars
+
+plt.figure(figsize=(14, 7))
+plt.bar(x - width/2, grid_accuracy, width, label='GridSearchCV Accuracy')
+plt.bar(x + width/2, random_accuracy, width, label='RandomizedSearchCV Accuracy')
+
+plt.xlabel('Models')
+plt.ylabel('Best Cross-Validation Accuracy')
+plt.title('Comparison of Best CV Accuracy: GridSearchCV vs RandomizedSearchCV')
+plt.xticks(x, models, rotation=45, ha='right')
+plt.legend()
+plt.ylim(0.75, 0.85) # Adjust y-limit to better visualize differences
+plt.tight_layout()
+plt.show()
+
+-------------------------------------------------------------------------------------------------------------------------
+
 -Final Task: Review the generated visualizations and provide any further insights or analysis based on them. 
 
+Review and Insights
+
+1. Distribution of Target Variable
+The first bar chart shows the distribution of the 'target' variable in the heart_data DataFrame. We can observe that the dataset is relatively balanced, with 165 instances of 'Disease (1)' and 138 instances of 'No Disease (0)'. This balance is good for training classification models as it reduces the risk of models being biased towards the majority class.
+
+2. Comparison of Mean Cross-Validation Metrics for SKlearn Models
+The second grouped bar chart illustrates the mean Accuracy, Precision, Recall, and F1-Score for different scikit-learn models (Logistic Regression, SVC, GaussianNB, KNeighborsClassifier, RandomForestClassifier) based on 5-fold stratified cross-validation.
+
+SVC and Logistic Regression generally show slightly higher mean accuracy, precision, recall, and F1-score compared to the other models, indicating their strong performance on this dataset.
+GaussianNB and KNeighborsClassifier perform slightly lower but still achieve reasonable scores.
+RandomForestClassifier also shows competitive performance, particularly in recall, but its F1-Score and precision are a bit lower than SVC and Logistic Regression.
+Overall, the models perform quite similarly, with SVC and Logistic Regression having a slight edge in balanced metrics like F1-Score.
+
+3. Comparison of Best CV Accuracy: GridSearchCV vs RandomizedSearchCV
+The third grouped bar chart compares the best cross-validation accuracy obtained from GridSearchCV and RandomizedSearchCV for each model.
+
+For all models (Logistic Regression, SVC, GaussianNB, KNeighborsClassifier, RandomForestClassifier), the best cross-validation accuracy scores obtained from GridSearchCV and RandomizedSearchCV are identical.
+This suggests that for the defined parameter grids and number of iterations for RandomizedSearchCV (n_iter=10), RandomizedSearchCV was able to explore the parameter space sufficiently to find the same optimal parameters as GridSearchCV, which performs an exhaustive search.
+The scores are generally in a similar range (around 0.81 to 0.83), with RandomForestClassifier showing the highest best accuracy at 0.8349.
+
+Overall Insights:
+
+The dataset for heart disease prediction is reasonably balanced, which is a good starting point for classification tasks.
+Among the scikit-learn models evaluated with cross-validation, Logistic Regression and SVC demonstrated marginally better overall performance based on mean accuracy, precision, recall, and F1-score.
+Both GridSearchCV and RandomizedSearchCV yielded the same best accuracy scores for the models, indicating that for this specific problem and parameter ranges, RandomizedSearchCV was efficient enough to find the global optimum without needing an exhaustive search. This is a valuable finding, as RandomizedSearchCV is generally more computationally efficient for larger search spaces.
+The best performing model after hyperparameter tuning appears to be RandomForestClassifier, achieving the highest cross-validation accuracy of 0.8349. 
+
+--------------------------------------------------------------------------------------------------------------------
+
+Summary:
+
+Q&A
+The review of the generated visualizations indicates that the dataset for heart disease prediction is reasonably balanced. Among the evaluated scikit-learn models, Logistic Regression and Support Vector Classifier (SVC) demonstrated marginally better overall performance in terms of mean accuracy, precision, recall, and F1-score during cross-validation. Both GridSearchCV and RandomizedSearchCV yielded identical best accuracy scores for the models, suggesting that RandomizedSearchCV was efficient enough to find optimal parameters in this scenario. The Random Forest Classifier achieved the highest best cross-validation accuracy of 0.8349.
+
+Data Analysis Key Findings
+The target variable distribution shows a relatively balanced dataset with 165 instances of 'Disease (1)' and 138 instances of 'No Disease (0)'.
+SVC and Logistic Regression generally achieved slightly higher mean scores across Accuracy, Precision, Recall, and F1-Score in cross-validation compared to other models.
+The mean F1-Scores for Logistic Regression and SVC were competitive, indicating good balance between precision and recall.
+For all models, the best cross-validation accuracy scores obtained from GridSearchCV and RandomizedSearchCV were identical, ranging approximately from 0.81 to 0.83.
+The RandomForestClassifier achieved the highest best cross-validation accuracy of 0.8349 after hyperparameter tuning.
+Insights or Next Steps
+The balanced nature of the target variable reduces the risk of model bias towards a majority class, which is a good foundation for classification.
+Considering the identical best accuracy scores from both tuning methods, RandomizedSearchCV can be preferred for future hyperparameter optimization on this dataset due to its computational efficiency, especially as model complexity or parameter space increases.
